@@ -1,6 +1,6 @@
 import path from 'node:path'
 import type { LoaderContext } from 'webpack'
-import { type TransformOptions, transform } from 'oxc-transform'
+import type { TransformOptions } from 'oxc-transform'
 
 export interface OxcLoaderOptions extends Omit<TransformOptions, 'sourcemap'> {
   /**
@@ -25,7 +25,7 @@ export interface OxcLoaderOptions extends Omit<TransformOptions, 'sourcemap'> {
 /**
  * Oxc webpack loader for transforming JavaScript and TypeScript files
  */
-function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string): void {
+async function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string): Promise<void> {
   // Get the callback for async operation
   const callback = this.async()
   if (!callback) {
@@ -33,6 +33,8 @@ function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string): void 
   }
 
   try {
+    // Dynamic import to handle ESM module
+    const { transform } = await import('oxc-transform')
     // Get loader options from webpack loader context
     const options: OxcLoaderOptions = this.getOptions() || {}
 
