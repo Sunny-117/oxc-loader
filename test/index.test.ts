@@ -27,7 +27,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
@@ -45,7 +45,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
@@ -64,7 +64,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
@@ -82,7 +82,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
@@ -106,7 +106,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
@@ -127,7 +127,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
@@ -148,7 +148,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), undefined)
   })
@@ -163,7 +163,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(expect.any(Error))
     const [error] = callback.mock.calls[0]
@@ -184,7 +184,7 @@ describe('oxc-loader', () => {
     const callback = vi.fn()
     mockContext.async = () => callback
 
-    oxcLoader.call(mockContext, source)
+    await oxcLoader.call(mockContext, source)
 
     expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
     const [error, code] = callback.mock.calls[0]
