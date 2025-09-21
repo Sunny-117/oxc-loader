@@ -46,7 +46,6 @@
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
-    "@oxc-transform/binding-darwin-arm64": "^0.91.0",
     "oxc-transform": "^0.91.0"
   },
   "devDependencies": {
