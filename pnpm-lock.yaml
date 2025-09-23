@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@oxc-transform/binding-darwin-arm64':
+        specifier: ^0.91.0
+        version: 0.91.0
       oxc-transform:
         specifier: ^0.91.0
         version: 0.91.0
@@ -5518,8 +5521,7 @@ snapshots:
   '@oxc-transform/binding-android-arm64@0.91.0':
     optional: true
 
-  '@oxc-transform/binding-darwin-arm64@0.91.0':
-    optional: true
+  '@oxc-transform/binding-darwin-arm64@0.91.0': {}
 
   '@oxc-transform/binding-darwin-x64@0.91.0':
     optional: true
