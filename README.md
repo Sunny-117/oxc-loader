@@ -19,6 +19,10 @@ A high-performance webpack loader for transforming JavaScript and TypeScript usi
 - 🗺️ **Source Maps**: Full source map support
 - ⚙️ **Configurable**: Extensive configuration options
 
+## Node.js Compatibility
+
+- Node.js 20.19 or higher
+
 ## Installation
 
 ```bash
