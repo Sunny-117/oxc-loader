@@ -31,6 +31,8 @@ npm install oxc-loader
 yarn add oxc-loader
 # or
 pnpm add oxc-loader
+# or
+bun add oxc-loader
 ```
 
 ## Usage
