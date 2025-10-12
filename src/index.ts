@@ -1,6 +1,7 @@
 import path from 'node:path'
 import type { LoaderContext } from 'webpack'
 import type { TransformOptions } from 'oxc-transform'
+import { getTsconfig } from 'get-tsconfig'
 
 export interface OxcLoaderOptions extends Omit<TransformOptions, 'sourcemap'> {
   /**
@@ -20,6 +21,118 @@ export interface OxcLoaderOptions extends Omit<TransformOptions, 'sourcemap'> {
    * @default true
    */
   autoDetectJsx?: boolean
+
+  /**
+   * Enable automatic tsconfig.json detection and configuration
+   * @default true
+   */
+  useTsconfig?: boolean
+
+  /**
+   * Custom path to tsconfig.json file
+   * If not specified, will search for tsconfig.json in the project
+   */
+  tsconfigPath?: string
+}
+
+/**
+ * Extract relevant options from tsconfig.json for oxc-transform
+ */
+function extractTsconfigOptions(tsconfigPath: string): Partial<TransformOptions> {
+  try {
+    const tsconfig = getTsconfig(tsconfigPath)
+    if (!tsconfig) {
+      return {}
+    }
+
+    const { compilerOptions } = tsconfig.config
+    if (!compilerOptions) {
+      return {}
+    }
+
+    const options: Partial<TransformOptions> = {}
+
+    // Map TypeScript compiler options to oxc-transform options
+    if (compilerOptions.target) {
+      // Convert TypeScript target to oxc target
+      const targetMap: Record<string, string> = {
+        ES3: 'es3',
+        ES5: 'es5',
+        ES6: 'es2015',
+        ES2015: 'es2015',
+        ES2016: 'es2016',
+        ES2017: 'es2017',
+        ES2018: 'es2018',
+        ES2019: 'es2019',
+        ES2020: 'es2020',
+        ES2021: 'es2021',
+        ES2022: 'es2022',
+        ESNext: 'esnext',
+      }
+      const target = targetMap[compilerOptions.target.toUpperCase()]
+      if (target) {
+        options.target = target
+      }
+    }
+
+    // Handle JSX configuration
+    if (compilerOptions.jsx) {
+      const jsxOptions: any = {}
+
+      switch (compilerOptions.jsx) {
+        case 'react':
+          jsxOptions.runtime = 'classic'
+          break
+        case 'react-jsx':
+          jsxOptions.runtime = 'automatic'
+          break
+        case 'react-jsxdev':
+          jsxOptions.runtime = 'automatic'
+          jsxOptions.development = true
+          break
+        case 'preserve':
+          // Don't transform JSX
+          break
+      }
+
+      if (compilerOptions.jsxFactory) {
+        jsxOptions.pragma = compilerOptions.jsxFactory
+      }
+
+      if (compilerOptions.jsxFragmentFactory) {
+        jsxOptions.pragmaFrag = compilerOptions.jsxFragmentFactory
+      }
+
+      if (compilerOptions.jsxImportSource) {
+        jsxOptions.importSource = compilerOptions.jsxImportSource
+      }
+
+      if (Object.keys(jsxOptions).length > 0) {
+        options.jsx = jsxOptions
+      }
+    }
+
+    // Handle TypeScript-specific options
+    const typescriptOptions: any = {}
+
+    if (compilerOptions.allowImportingTsExtensions) {
+      typescriptOptions.rewrite_import_extensions = 'rewrite'
+    }
+
+    if (compilerOptions.verbatimModuleSyntax) {
+      typescriptOptions.only_remove_type_imports = true
+    }
+
+    if (Object.keys(typescriptOptions).length > 0) {
+      options.typescript = typescriptOptions
+    }
+    return options
+  }
+  catch (error) {
+    // If tsconfig.json reading fails, return empty options
+    console.warn(`Failed to read tsconfig.json: ${error}`)
+    return {}
+  }
 }
 
 /**
@@ -37,6 +150,13 @@ async function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string):
     const { transform } = await import('oxc-transform')
     // Get loader options from webpack loader context
     const options: OxcLoaderOptions = this.getOptions() || {}
+
+    // Extract tsconfig.json options if enabled
+    let tsconfigOptions: Partial<TransformOptions> = {}
+    if (options.useTsconfig !== false) {
+      const tsconfigPath = options.tsconfigPath || this.rootContext
+      tsconfigOptions = extractTsconfigOptions(tsconfigPath)
+    }
 
     // Get file information
     const filename = this.resourcePath
@@ -83,11 +203,43 @@ async function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string):
     }
 
     // Prepare transform options by excluding custom options
-    const { autoDetectJsx, refresh, ...oxcOptions } = options
-    const transformOptions: TransformOptions = {
+    const { autoDetectJsx, refresh, useTsconfig, tsconfigPath, ...oxcOptions } = options
+
+    // Merge tsconfig options with user options (user options take precedence)
+    const mergedOptions = {
+      ...tsconfigOptions,
       ...oxcOptions,
+    }
+
+    const tsconfigJsxOption = tsconfigOptions.jsx
+    const tsconfigJsxOptions = typeof tsconfigJsxOption === 'object' && tsconfigJsxOption !== null
+      ? tsconfigJsxOption
+      : undefined
+
+    const jsxOptionsObject = typeof jsxOptions === 'object' && jsxOptions !== null
+      ? jsxOptions
+      : undefined
+
+    let finalJsx: TransformOptions['jsx'] | undefined
+
+    if (jsxOptions === 'preserve') {
+      finalJsx = 'preserve'
+    }
+    else if (jsxOptionsObject || tsconfigJsxOptions) {
+      const mergedJsx = {
+        ...tsconfigJsxOptions,
+        ...jsxOptionsObject,
+      }
+      finalJsx = Object.keys(mergedJsx).length > 0 ? mergedJsx : undefined
+    }
+    else if (tsconfigJsxOption === 'preserve') {
+      finalJsx = 'preserve'
+    }
+
+    const transformOptions: TransformOptions = {
+      ...mergedOptions,
       lang,
-      jsx: jsxOptions,
+      jsx: finalJsx,
       sourcemap: options.sourcemap !== false, // Default to true
       cwd: this.rootContext,
     }

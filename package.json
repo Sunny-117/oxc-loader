@@ -41,12 +41,13 @@
     "prepublishOnly": "nr build",
     "release": "bumpp && npm publish",
     "start": "esno src/index.ts",
-    "test": "vitest",
+    "test": "vitest --run",
     "typecheck": "tsc --noEmit",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
     "@oxc-transform/binding-darwin-arm64": "^0.91.0",
+    "get-tsconfig": "^4.8.1",
     "oxc-transform": "^0.91.0"
   },
   "devDependencies": {

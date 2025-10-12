@@ -10,6 +10,7 @@ module.exports = {
     filename: '[name].[contenthash].js',
     clean: true,
   },
+  devtool: 'source-map',
   module: {
     rules: [
       {
@@ -38,7 +39,7 @@ module.exports = {
             },
 
             // Target modern browsers
-            target: ['es2020', 'chrome80', 'firefox80', 'safari14'],
+            // target: ['es2020', 'chrome80', 'firefox80', 'safari14'],
 
             // Compiler assumptions for smaller output
             assumptions: {

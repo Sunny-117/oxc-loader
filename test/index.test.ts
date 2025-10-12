@@ -191,4 +191,96 @@ describe('oxc-loader', () => {
     expect(error).toBeNull()
     expect(code).toContain('class Test')
   })
+
+  describe('tsconfig.json support', () => {
+    it('should disable tsconfig.json reading when useTsconfig is false', async () => {
+      const source = 'const x: number = 1; export default x;'
+      const mockContext = createMockLoaderContext({
+        resourcePath: '/test/file.ts',
+        rootContext: '/test',
+        getOptions: () => ({
+          useTsconfig: false,
+        }),
+      })
+
+      const callback = vi.fn()
+      mockContext.async = () => callback
+
+      await oxcLoader.call(mockContext, source)
+
+      expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
+      const [error, code] = callback.mock.calls[0]
+      expect(error).toBeNull()
+      expect(code).toContain('const x = 1')
+    })
+
+    it('should handle missing tsconfig.json gracefully', async () => {
+      const source = 'const x: number = 1; export default x;'
+      const mockContext = createMockLoaderContext({
+        resourcePath: '/test/file.ts',
+        rootContext: '/nonexistent',
+        getOptions: () => ({
+          useTsconfig: true,
+        }),
+      })
+
+      const callback = vi.fn()
+      mockContext.async = () => callback
+
+      await oxcLoader.call(mockContext, source)
+
+      expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
+      const [error, code] = callback.mock.calls[0]
+      expect(error).toBeNull()
+      expect(code).toContain('const x = 1')
+    })
+
+    it('should use custom tsconfig path when specified', async () => {
+      const source = 'const x: number = 1; export default x;'
+      const mockContext = createMockLoaderContext({
+        resourcePath: '/test/file.ts',
+        rootContext: '/test',
+        getOptions: () => ({
+          useTsconfig: true,
+          tsconfigPath: '/custom/path/tsconfig.json',
+        }),
+      })
+
+      const callback = vi.fn()
+      mockContext.async = () => callback
+
+      await oxcLoader.call(mockContext, source)
+
+      expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
+      const [error, code] = callback.mock.calls[0]
+      expect(error).toBeNull()
+      expect(code).toContain('const x = 1')
+    })
+
+    it('should merge tsconfig options with user options (user takes precedence)', async () => {
+      const source = 'export default function App() { return <div>Hello</div>; }'
+      const mockContext = createMockLoaderContext({
+        resourcePath: '/test/App.tsx',
+        rootContext: '/test',
+        getOptions: () => ({
+          useTsconfig: true,
+          jsx: {
+            runtime: 'classic', // This should override any tsconfig jsx setting
+            pragma: 'h',
+          },
+        }),
+      })
+
+      const callback = vi.fn()
+      mockContext.async = () => callback
+
+      await oxcLoader.call(mockContext, source)
+
+      expect(callback).toHaveBeenCalledWith(null, expect.any(String), expect.any(Object))
+      const [error, code] = callback.mock.calls[0]
+      expect(error).toBeNull()
+      // Should use the user-specified pragma 'h' instead of any tsconfig setting
+      expect(code).toContain('h(')
+    })
+  })
 })

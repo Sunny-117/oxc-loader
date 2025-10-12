@@ -11,6 +11,9 @@ importers:
       '@oxc-transform/binding-darwin-arm64':
         specifier: ^0.91.0
         version: 0.91.0
+      get-tsconfig:
+        specifier: ^4.8.1
+        version: 4.10.1
       oxc-transform:
         specifier: ^0.91.0
         version: 0.91.0
@@ -1032,7 +1035,6 @@ packages:
   '@oxc-transform/binding-darwin-arm64@0.91.0':
     resolution: {integrity: sha512-AizvZbSBSBwh8ya3NoDzTjp21SblgbZ7+//AigjKCQ4hpl2A4EUU0vC7ay9wfTJ6SnXhvxJqSTe5NIf3Rp516A==}
     engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
     os: [darwin]
 
   '@oxc-transform/binding-darwin-x64@0.91.0':

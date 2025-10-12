@@ -18,6 +18,7 @@ A high-performance webpack loader for transforming JavaScript and TypeScript usi
 - 🛠️ **Webpack & Rspack**: Compatible with both bundlers
 - 🗺️ **Source Maps**: Full source map support
 - ⚙️ **Configurable**: Extensive configuration options
+- 📋 **tsconfig.json Support**: Automatic detection and configuration from TypeScript config
 
 ## Node.js Compatibility
 
@@ -179,6 +180,22 @@ module.exports = {
   }
 }
 ```
+
+### tsconfig.json Support
+
+oxc-loader automatically reads and applies relevant settings from your `tsconfig.json` file. This feature is enabled by default and helps ensure consistency between your TypeScript configuration and the transformation process.
+
+#### Supported tsconfig.json Options
+
+The following TypeScript compiler options are automatically mapped to oxc-transform settings:
+
+- **`target`**: Maps to oxc-transform's `target` option
+- **`jsx`**: Configures JSX transformation mode
+- **`jsxFactory`**: Sets custom JSX pragma
+- **`jsxFragmentFactory`**: Sets custom JSX fragment pragma
+- **`jsxImportSource`**: Sets JSX import source for automatic runtime
+- **`allowImportingTsExtensions`**: Enables import extension rewriting
+- **`verbatimModuleSyntax`**: Enables type-only import removal
 
 ## Examples
 

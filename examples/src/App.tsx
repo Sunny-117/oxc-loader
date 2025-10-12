@@ -12,6 +12,12 @@ const App: React.FC = () => {
     { id: 1, name: 'John Doe', email: 'john@example.com' },
     { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
   ])
+  // ! test ES2015
+  // useEffect(() => {
+  //   async function demo(type: string) {
+  //     console.log(type, 'type')
+  //   }
+  // }, [])
 
   const handleIncrement = () => {
     setCount(prev => prev + 1)
