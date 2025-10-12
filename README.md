@@ -6,7 +6,7 @@
 [![JSDocs][jsdocs-src]][jsdocs-href]
 [![License][license-src]][license-href]
 
-A high-performance webpack loader for transforming JavaScript and TypeScript using [oxc](https://github.com/oxc-project/oxc).
+A high-performance webpack/Rspack loader for transforming JavaScript and TypeScript using [Oxc](https://github.com/oxc-project/oxc).
 
 ## Features
 
