@@ -411,6 +411,7 @@ Contributions are welcome! Please read our [contributing guide](CONTRIBUTING.md)
 
 - [oxc](https://github.com/oxc-project/oxc) - The JavaScript Oxidation Compiler
 - [oxc-transform](https://www.npmjs.com/package/oxc-transform) - Standalone transform package
+- [unplugin-oxc](https://github.com/unplugin/unplugin-oxc) - Oxc integration for unplugin
 - [webpack](https://webpack.js.org/) - Module bundler
 - [rspack](https://rspack.dev/) - Fast Rust-based bundler
 
