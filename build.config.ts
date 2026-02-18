@@ -1,13 +1,8 @@
-import { defineBuildConfig } from 'unbuild'
+import { defineConfig } from 'robuild'
 
-export default defineBuildConfig({
-  entries: [
-    'src/index',
-  ],
-  declaration: true,
+export default defineConfig({
+  entry: 'src/index',
+  format: ['cjs', 'esm'],
   clean: true,
-  externals: ['webpack'],
-  rollup: {
-    emitCJS: true,
-  },
+  external: ['webpack'],
 })
