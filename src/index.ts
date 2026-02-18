@@ -1,6 +1,6 @@
-import path from 'node:path'
-import type { LoaderContext } from 'webpack'
 import type { TransformOptions } from 'oxc-transform'
+import type { LoaderContext } from 'webpack'
+import path from 'node:path'
 import { getTsconfig } from 'get-tsconfig'
 
 export interface OxcLoaderOptions extends Omit<TransformOptions, 'sourcemap'> {
@@ -245,7 +245,7 @@ async function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string):
     }
 
     // Transform the source code
-    const result = transform(filename, source, transformOptions)
+    const result = await transform(filename, source, transformOptions)
 
     // Handle errors
     if (result.errors.length > 0) {
