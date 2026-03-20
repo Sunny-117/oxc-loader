@@ -33,7 +33,7 @@ const App: React.FC = () => {
           {count}
         </h2>
         <button onClick={handleIncrement} style={{ padding: '10px 20px' }}>
-          Increment
+          Increment11
         </button>
       </div>
 

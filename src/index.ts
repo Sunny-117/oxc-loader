@@ -5,34 +5,50 @@ import { getTsconfig } from 'get-tsconfig'
 
 export interface OxcLoaderOptions extends Omit<TransformOptions, 'sourcemap'> {
   /**
-   * Enable source map generation
-   * @default true
+   * Enable source map generation.
+   * When not specified, falls back to webpack's own `this.sourceMap` setting
+   * (determined by the `devtool` option).
+   * @default undefined (inherits from webpack)
    */
   sourcemap?: boolean
 
   /**
-   * Enable React Fast Refresh for development
+   * Enable React Fast Refresh for development.
+   * Passed as `jsx.refresh` to oxc-transform when autoDetectJsx is active.
    * @default false
    */
   refresh?: boolean
 
   /**
-   * Automatically detect and configure JSX based on file extension
+   * Automatically detect and configure JSX based on file extension.
+   * When enabled, `.jsx`/`.tsx` files receive `runtime: "automatic"` and
+   * `development` is derived from webpack's `mode` (unless already set).
    * @default true
    */
   autoDetectJsx?: boolean
 
   /**
-   * Enable automatic tsconfig.json detection and configuration
+   * Enable automatic tsconfig.json detection and configuration.
    * @default true
    */
   useTsconfig?: boolean
 
   /**
-   * Custom path to tsconfig.json file
-   * If not specified, will search for tsconfig.json in the project
+   * Custom path to tsconfig.json file.
+   * If not specified, will search for tsconfig.json from `rootContext`.
    */
   tsconfigPath?: string
+
+  /**
+   * Use the synchronous oxc-transform API (`transformSync`) instead of the
+   * default asynchronous one. This avoids promise overhead and can be faster
+   * in certain build pipelines.
+   *
+   * Note: the oxc-transform module is still loaded asynchronously the first
+   * time the loader runs; subsequent calls reuse the cached module.
+   * @default false
+   */
+  sync?: boolean
 }
 
 /**
@@ -135,146 +151,199 @@ function extractTsconfigOptions(tsconfigPath: string): Partial<TransformOptions>
   }
 }
 
+// Cache the oxc-transform module promise so it is only loaded once per worker
+// regardless of how many files are processed.  The dynamic import is needed
+// because oxc-transform is an ESM-only package and must be imported
+// asynchronously even from a CJS build of this loader.
+const _oxcModulePromise = import('oxc-transform')
+
 /**
- * Oxc webpack loader for transforming JavaScript and TypeScript files
+ * Factory that produces a loader function.  Exposed as `oxcLoader.custom` so
+ * callers can create isolated loader instances with their own defaults.
  */
-async function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string): Promise<void> {
-  // Get the callback for async operation
-  const callback = this.async()
-  if (!callback) {
-    throw new Error('oxc-loader requires async operation')
-  }
-
-  try {
-    // Dynamic import to handle ESM module
-    const { transform } = await import('oxc-transform')
-    // Get loader options from webpack loader context
-    const options: OxcLoaderOptions = this.getOptions() || {}
-
-    // Extract tsconfig.json options if enabled
-    let tsconfigOptions: Partial<TransformOptions> = {}
-    if (options.useTsconfig !== false) {
-      const tsconfigPath = options.tsconfigPath || this.rootContext
-      tsconfigOptions = extractTsconfigOptions(tsconfigPath)
+export function makeLoader() {
+  return async function oxcLoader(this: LoaderContext<OxcLoaderOptions>, source: string): Promise<void> {
+    // Get the callback for async operation
+    const callback = this.async()
+    if (!callback) {
+      throw new Error('oxc-loader requires async operation')
     }
 
-    // Get file information
-    const filename = this.resourcePath
-    const ext = path.extname(filename).slice(1)
+    try {
+      // Await the cached module (resolves immediately after the first call)
+      const oxcModule = await _oxcModulePromise
+      // Get loader options from webpack loader context
+      const options: OxcLoaderOptions = this.getOptions() || {}
 
-    // Determine language from file extension
-    let lang: TransformOptions['lang']
-    switch (ext) {
-      case 'ts':
-        lang = 'ts'
-        break
-      case 'tsx':
-        lang = 'tsx'
-        break
-      case 'jsx':
-        lang = 'jsx'
-        break
-      case 'js':
-      default:
-        lang = 'js'
-        break
-    }
+      // Strip loader-specific keys before building oxc transform options
+      const { autoDetectJsx, refresh, useTsconfig, tsconfigPath, sourcemap, sync, ...oxcOptions } = options
 
-    // Auto-detect JSX configuration
-    const shouldConfigureJsx = options.autoDetectJsx !== false && (lang === 'jsx' || lang === 'tsx')
+      // ── Source map ────────────────────────────────────────────────────────
+      // When the caller has not explicitly set `sourcemap`, fall back to
+      // webpack's own decision (driven by `devtool`).  This matches the
+      // behaviour of the authoritative oxc-webpack-loader reference.
+      const sourceMaps = sourcemap === undefined ? this.sourceMap : sourcemap
 
-    // Prepare JSX options
-    let jsxOptions = options.jsx
-    if (shouldConfigureJsx && !jsxOptions) {
-      jsxOptions = {
-        runtime: 'automatic',
-        development: this.mode === 'development',
-        refresh: options.refresh && this.mode === 'development',
+      // ── tsconfig ──────────────────────────────────────────────────────────
+      let tsconfigOptions: Partial<TransformOptions> = {}
+      if (useTsconfig !== false) {
+        const tsconfigSearchPath = tsconfigPath || this.rootContext
+        tsconfigOptions = extractTsconfigOptions(tsconfigSearchPath)
       }
-    }
-    else if (shouldConfigureJsx && typeof jsxOptions === 'object') {
-      // Merge with defaults
-      jsxOptions = {
-        runtime: 'automatic',
-        development: this.mode === 'development',
-        refresh: options.refresh && this.mode === 'development',
-        ...jsxOptions,
+
+      // ── Language detection ────────────────────────────────────────────────
+      const filename = this.resourcePath
+      const ext = path.extname(filename).slice(1)
+
+      let lang: TransformOptions['lang']
+      switch (ext) {
+        case 'ts': lang = 'ts'; break
+        case 'tsx': lang = 'tsx'; break
+        case 'jsx': lang = 'jsx'; break
+        case 'js':
+        default: lang = 'js'; break
       }
-    }
 
-    // Prepare transform options by excluding custom options
-    const { autoDetectJsx, refresh, useTsconfig, tsconfigPath, ...oxcOptions } = options
+      // ── JSX auto-configuration for .jsx/.tsx ──────────────────────────────
+      // When autoDetectJsx is enabled (default), .jsx and .tsx files receive
+      // JSX transform defaults that can be individually overridden by the user.
+      const shouldConfigureJsx = autoDetectJsx !== false && (lang === 'jsx' || lang === 'tsx')
 
-    // Merge tsconfig options with user options (user options take precedence)
-    const mergedOptions = {
-      ...tsconfigOptions,
-      ...oxcOptions,
-    }
-
-    const tsconfigJsxOption = tsconfigOptions.jsx
-    const tsconfigJsxOptions = typeof tsconfigJsxOption === 'object' && tsconfigJsxOption !== null
-      ? tsconfigJsxOption
-      : undefined
-
-    const jsxOptionsObject = typeof jsxOptions === 'object' && jsxOptions !== null
-      ? jsxOptions
-      : undefined
-
-    let finalJsx: TransformOptions['jsx'] | undefined
-
-    if (jsxOptions === 'preserve') {
-      finalJsx = 'preserve'
-    }
-    else if (jsxOptionsObject || tsconfigJsxOptions) {
-      const mergedJsx = {
-        ...tsconfigJsxOptions,
-        ...jsxOptionsObject,
-      }
-      finalJsx = Object.keys(mergedJsx).length > 0 ? mergedJsx : undefined
-    }
-    else if (tsconfigJsxOption === 'preserve') {
-      finalJsx = 'preserve'
-    }
-
-    const transformOptions: TransformOptions = {
-      ...mergedOptions,
-      lang,
-      jsx: finalJsx,
-      sourcemap: options.sourcemap !== false, // Default to true
-      cwd: this.rootContext,
-    }
-
-    // Transform the source code
-    const result = await transform(filename, source, transformOptions)
-
-    // Handle errors
-    if (result.errors.length > 0) {
-      const errorMessages = result.errors.map(error =>
-        `${error.message}${error.codeframe ? `\n${error.codeframe}` : ''}`,
-      ).join('\n\n')
-
-      return callback(new Error(`Oxc transform errors:\n${errorMessages}`))
-    }
-
-    // Return transformed code with source map
-    // Convert oxc SourceMap to webpack-compatible format
-    const sourceMap = result.map
-      ? {
-          version: result.map.version,
-          sources: result.map.sources,
-          names: result.map.names,
-          mappings: result.map.mappings,
-          file: result.map.file || filename,
-          sourcesContent: result.map.sourcesContent,
-          sourceRoot: result.map.sourceRoot,
+      let jsxOptions = options.jsx
+      if (shouldConfigureJsx && !jsxOptions) {
+        jsxOptions = {
+          runtime: 'automatic',
+          // Only inject `development` when the user has not already set it
+          development: this.mode === 'development',
+          refresh: !!(refresh && this.mode === 'development'),
         }
-      : undefined
+      }
+      else if (shouldConfigureJsx && typeof jsxOptions === 'object') {
+        jsxOptions = {
+          runtime: 'automatic',
+          // Only inject `development` when the user has not already set it
+          ...(!Object.hasOwn(jsxOptions, 'development') && this.mode
+            ? { development: this.mode === 'development' }
+            : {}),
+          refresh: !!(refresh && this.mode === 'development'),
+          // User values always win
+          ...jsxOptions,
+        }
+      }
 
-    callback(null, result.code, sourceMap)
-  }
-  catch (error) {
-    callback(error instanceof Error ? error : new Error(String(error)))
+      // ── JSX lang promotion for plain .js/.ts with jsx options ─────────────
+      // When jsx options are supplied but the file uses a plain .js or .ts
+      // extension, automatically promote the lang so the parser handles JSX
+      // syntax — matching the behaviour of oxc-webpack-loader.
+      if (!options.lang && jsxOptions && jsxOptions !== 'preserve') {
+        if (ext === 'js') {
+          lang = 'jsx'
+        }
+        else if (ext === 'ts') {
+          lang = 'tsx'
+        }
+      }
+
+      // ── Build final JSX option ────────────────────────────────────────────
+      const tsconfigJsxOption = tsconfigOptions.jsx
+      const tsconfigJsxObj = typeof tsconfigJsxOption === 'object' && tsconfigJsxOption !== null
+        ? tsconfigJsxOption
+        : undefined
+
+      const jsxOptionsObj = typeof jsxOptions === 'object' && jsxOptions !== null
+        ? jsxOptions
+        : undefined
+
+      let finalJsx: TransformOptions['jsx'] | undefined
+      if (jsxOptions === 'preserve') {
+        finalJsx = 'preserve'
+      }
+      else if (jsxOptionsObj || tsconfigJsxObj) {
+        const merged = { ...tsconfigJsxObj, ...jsxOptionsObj }
+        finalJsx = Object.keys(merged).length > 0 ? merged : undefined
+      }
+      else if (tsconfigJsxOption === 'preserve') {
+        finalJsx = 'preserve'
+      }
+
+      // ── Final transform options ───────────────────────────────────────────
+      const transformOptions: TransformOptions = {
+        // tsconfig values provide the baseline
+        ...tsconfigOptions,
+        // user oxcOptions override tsconfig (jsx handled separately below)
+        ...oxcOptions,
+        lang,
+        jsx: finalJsx,
+        sourcemap: !!sourceMaps,
+        cwd: this.rootContext,
+      }
+
+      // ── Helpers ───────────────────────────────────────────────────────────
+      function formatErrors(errors: Array<{ message: string, codeframe?: string | null }>): string {
+        return errors
+          .map(e => `${e.message}${e.codeframe ? `\n${e.codeframe}` : ''}`)
+          .join('\n\n')
+      }
+
+      function toWebpackSourceMap(map: { version: number, sources: string[], names: string[], mappings: string, file?: string, sourcesContent?: (string | null)[] | null, sourceRoot?: string } | undefined) {
+        if (!map)
+          return undefined
+        return {
+          version: map.version as 3,
+          sources: map.sources,
+          names: map.names,
+          mappings: map.mappings,
+          file: map.file || filename,
+          // webpack's RawSourceMap requires string[], not (string | null)[]
+          sourcesContent: map.sourcesContent
+            ? map.sourcesContent.map(s => s ?? '')
+            : undefined,
+          sourceRoot: map.sourceRoot,
+        }
+      }
+
+      // ── Dispatch: sync vs async ───────────────────────────────────────────
+      if (sync) {
+        // Use transformSync for lower latency.  The module is guaranteed to be
+        // cached by this point because we awaited _oxcModulePromise above.
+        const { transformSync } = oxcModule
+        try {
+          const output = transformSync(filename, source, transformOptions)
+          if (output.errors.length > 0) {
+            callback(new Error(`Oxc transform errors:\n${formatErrors(output.errors)}`))
+            return
+          }
+          callback(null, output.code, toWebpackSourceMap(output.map))
+        }
+        catch (e) {
+          callback(e instanceof Error ? e : new Error(String(e)))
+        }
+      }
+      else {
+        const { transform } = oxcModule
+        const output = await transform(filename, source, transformOptions)
+        if (output.errors.length > 0) {
+          callback(new Error(`Oxc transform errors:\n${formatErrors(output.errors)}`))
+          return
+        }
+        callback(null, output.code, toWebpackSourceMap(output.map))
+      }
+    }
+    catch (error) {
+      callback(error instanceof Error ? error : new Error(String(error)))
+    }
   }
 }
 
+const oxcLoader = makeLoader()
+
+/**
+ * Default export: the loader function ready to be used directly in webpack/rspack.
+ *
+ * @example
+ * // webpack.config.js
+ * module.exports = {
+ *   module: { rules: [{ test: /\.[jt]sx?$/, loader: 'oxc-loader' }] }
+ * }
+ */
 export default oxcLoader
