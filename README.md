@@ -1,4 +1,21 @@
+<p align="center">
+  <br>
+  <br>
+  <a href="https://oxc.rs" target="_blank" rel="noopener noreferrer">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://oxc.rs/oxc-light.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://oxc.rs/oxc-dark.svg">
+      <img alt="Oxc logo" src="https://oxc.rs/oxc-dark.svg" height="60">
+    </picture>
+  </a>
+  <br>
+  <br>
+  <br>
+</p>
+
 # oxc-loader
+
+<div align="center">
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
@@ -6,7 +23,12 @@
 [![JSDocs][jsdocs-src]][jsdocs-href]
 [![License][license-src]][license-href]
 
-A high-performance webpack/Rspack loader for transforming JavaScript and TypeScript using [Oxc](https://github.com/oxc-project/oxc).
+[![Discord chat][discord-badge]][discord-url]
+[![Website][website-badge]][website-url]
+
+</div>
+
+A high-performance webpack/Rspack loader for transforming JavaScript and TypeScript using [Oxc](https://github.com/oxc-project/oxc). A drop-in replacement for `swc-loader` and `babel-loader`.
 
 ## Features
 
@@ -27,13 +49,13 @@ A high-performance webpack/Rspack loader for transforming JavaScript and TypeScr
 ## Installation
 
 ```bash
-npm install oxc-loader
+npm install -D oxc-loader
 # or
-yarn add oxc-loader
+yarn add -D oxc-loader
 # or
-pnpm add oxc-loader
+pnpm add -D oxc-loader
 # or
-bun add oxc-loader
+bun add -D oxc-loader
 ```
 
 ## Usage
@@ -180,6 +202,30 @@ module.exports = {
   }
 }
 ```
+
+### Target
+
+```javascript
+{
+  loader: 'oxc-loader',
+  options: {
+    target: 'es2015',
+  },
+}
+```
+
+### Source Maps
+
+```javascript
+{
+  loader: 'oxc-loader',
+  options: {
+    sourcemap: true,
+  },
+}
+```
+
+Source maps are also automatically enabled when webpack's `devtool` option is set.
 
 ### tsconfig.json Support
 
@@ -427,3 +473,7 @@ Contributions are welcome! Please read our [contributing guide](CONTRIBUTING.md)
 [license-href]: https://github.com/Sunny-117/oxc-loader/blob/main/LICENSE
 [jsdocs-src]: https://img.shields.io/badge/jsdocs-reference-080f12?style=flat&colorA=080f12&colorB=1fa669
 [jsdocs-href]: https://www.jsdocs.io/package/oxc-loader
+[discord-badge]: https://img.shields.io/discord/1079625926024900739?logo=discord&label=Discord
+[discord-url]: https://discord.gg/9uXCAwqQZW
+[website-badge]: https://img.shields.io/badge/Website-blue
+[website-url]: https://oxc.rs
