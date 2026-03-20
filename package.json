@@ -1,7 +1,7 @@
 {
   "name": "oxc-loader",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "webpack/Rspack loader for Oxc",
   "author": "Sunny-117",
   "license": "MIT",
