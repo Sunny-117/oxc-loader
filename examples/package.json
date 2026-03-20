@@ -16,6 +16,7 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@rspack/plugin-react-refresh": "^1.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

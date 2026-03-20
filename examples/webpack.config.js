@@ -1,9 +1,12 @@
 const path = require('node:path')
 const process = require('node:process')
+const ReactRefreshPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
+const isDev = (process.env.NODE_ENV || 'development') === 'development'
+
 module.exports = {
-  mode: process.env.NODE_ENV || 'development',
+  mode: isDev ? 'development' : 'production',
   entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -23,7 +26,7 @@ module.exports = {
             sourcemap: true,
 
             // Enable React Fast Refresh in development
-            refresh: process.env.NODE_ENV === 'development',
+            refresh: isDev,
 
             // TypeScript configuration
             typescript: {
@@ -34,7 +37,7 @@ module.exports = {
             // JSX configuration (auto-detected for .jsx/.tsx files)
             jsx: {
               runtime: 'automatic',
-              development: process.env.NODE_ENV === 'development',
+              development: isDev,
               importSource: 'react',
             },
 
@@ -62,7 +65,10 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './public/index.html',
     }),
-  ],
+    // Provides the $RefreshSig$ / $RefreshReg$ runtime required by the
+    // refresh transform injected by oxc-loader when `refresh: true`.
+    isDev && new ReactRefreshPlugin(),
+  ].filter(Boolean),
   devServer: {
     hot: true,
     port: 3000,
