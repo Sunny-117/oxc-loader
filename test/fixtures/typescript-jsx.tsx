@@ -1,17 +1,16 @@
-import React from 'react'
+import React from "react";
 
 interface Props {
-  name: string
+  name: string;
 }
 
 function Greeting({ name }: Props) {
   return (
     <div>
       Hello,
-      {name}
-      !
+      {name}!
     </div>
-  )
+  );
 }
 
-export default Greeting
+export default Greeting;

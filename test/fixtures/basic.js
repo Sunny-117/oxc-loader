@@ -1,2 +1,2 @@
-const message = 'hello world'
-console.log(message)
+const message = "hello world";
+console.log(message);

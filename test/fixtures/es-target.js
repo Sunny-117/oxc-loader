@@ -1,6 +1,6 @@
-const greet = name => `Hello, ${name}!`
+const greet = (name) => `Hello, ${name}!`;
 
-const obj = { a: 1, b: 2, c: 3 }
-const { a, ...rest } = obj
+const obj = { a: 1, b: 2, c: 3 };
+const { a: _a, ...rest } = obj;
 
-export { greet, rest }
+export { greet, rest };
